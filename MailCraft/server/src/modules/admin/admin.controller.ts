@@ -131,6 +131,48 @@ export const deleteOrganization = async (req: AuthRequest, res: Response): Promi
   }
 };
 
+export const reviewOrganization = async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    const id = req.params.id as string;
+    const org = await prisma.organization.update({
+      where: { id },
+      data: { status: 'UNDER_REVIEW' },
+    });
+    res.json({ message: 'Organization is now under review.', organization: org });
+  } catch (error) {
+    console.error('Review org error:', error);
+    res.status(500).json({ error: 'Failed to review organization.' });
+  }
+};
+
+export const approveOrganization = async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    const id = req.params.id as string;
+    const org = await prisma.organization.update({
+      where: { id },
+      data: { status: 'ACTIVE' },
+    });
+    res.json({ message: 'Organization approved.', organization: org });
+  } catch (error) {
+    console.error('Approve org error:', error);
+    res.status(500).json({ error: 'Failed to approve organization.' });
+  }
+};
+
+export const rejectOrganization = async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    const id = req.params.id as string;
+    const org = await prisma.organization.update({
+      where: { id },
+      data: { status: 'REJECTED' },
+    });
+    res.json({ message: 'Organization rejected.', organization: org });
+  } catch (error) {
+    console.error('Reject org error:', error);
+    res.status(500).json({ error: 'Failed to reject organization.' });
+  }
+};
+
 export const getAllCampaigns = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const { page = '1', limit = '20' } = req.query;

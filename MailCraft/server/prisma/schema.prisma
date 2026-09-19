@@ -16,7 +16,10 @@ enum Role {
 }
 
 enum OrgStatus {
+  REQUESTED
+  UNDER_REVIEW
   ACTIVE
+  REJECTED
   SUSPENDED
   DELETED
 }

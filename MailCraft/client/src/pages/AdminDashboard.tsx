@@ -33,19 +33,40 @@ const AdminDashboard: React.FC = () => {
     enabled: tab === 'campaigns',
   });
 
+  const reviewMutation = useMutation({
+    mutationFn: (id: string) => api.post(`/admin/organizations/${id}/review`),
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['admin-orgs'] }); queryClient.invalidateQueries({ queryKey: ['admin-stats'] }); toast.success('Organization under review'); },
+    onError: (error: any) => toast.error(error.response?.data?.error || error.message || 'Failed to review organization'),
+  });
+
+  const approveMutation = useMutation({
+    mutationFn: (id: string) => api.post(`/admin/organizations/${id}/approve`),
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['admin-orgs'] }); queryClient.invalidateQueries({ queryKey: ['admin-stats'] }); toast.success('Organization approved'); },
+    onError: (error: any) => toast.error(error.response?.data?.error || error.message || 'Failed to approve organization'),
+  });
+
+  const rejectMutation = useMutation({
+    mutationFn: (id: string) => api.post(`/admin/organizations/${id}/reject`),
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['admin-orgs'] }); queryClient.invalidateQueries({ queryKey: ['admin-stats'] }); toast.success('Organization rejected'); },
+    onError: (error: any) => toast.error(error.response?.data?.error || error.message || 'Failed to reject organization'),
+  });
+
   const suspendMutation = useMutation({
     mutationFn: (id: string) => api.post(`/admin/organizations/${id}/suspend`),
     onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['admin-orgs'] }); queryClient.invalidateQueries({ queryKey: ['admin-stats'] }); toast.success('Organization suspended'); },
+    onError: (error: any) => toast.error(error.response?.data?.error || error.message || 'Failed to suspend organization'),
   });
 
   const restoreMutation = useMutation({
     mutationFn: (id: string) => api.post(`/admin/organizations/${id}/restore`),
     onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['admin-orgs'] }); queryClient.invalidateQueries({ queryKey: ['admin-stats'] }); toast.success('Organization restored'); },
+    onError: (error: any) => toast.error(error.response?.data?.error || error.message || 'Failed to restore organization'),
   });
 
   const deleteMutation = useMutation({
     mutationFn: (id: string) => api.delete(`/admin/organizations/${id}`),
     onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['admin-orgs'] }); queryClient.invalidateQueries({ queryKey: ['admin-stats'] }); toast.success('Organization deleted'); },
+    onError: (error: any) => toast.error(error.response?.data?.error || error.message || 'Failed to delete organization'),
   });
 
   const statCards = [
@@ -136,6 +157,8 @@ const AdminDashboard: React.FC = () => {
                           <td className="px-4 py-3">
                             <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${
                               org.status === 'ACTIVE' ? 'bg-emerald-500/10 text-emerald-500' :
+                              org.status === 'REQUESTED' ? 'bg-blue-500/10 text-blue-500' :
+                              org.status === 'UNDER_REVIEW' ? 'bg-indigo-500/10 text-indigo-500' :
                               org.status === 'SUSPENDED' ? 'bg-amber-500/10 text-amber-500' : 'bg-red-500/10 text-red-500'
                             }`}>{org.status}</span>
                           </td>
@@ -144,6 +167,21 @@ const AdminDashboard: React.FC = () => {
                           <td className="px-4 py-3 text-sm">{org._count?.campaigns || 0}</td>
                           <td className="px-4 py-3 text-right">
                             <div className="flex justify-end gap-1">
+                              {org.status === 'REQUESTED' && (
+                                <Button variant="ghost" size="sm" onClick={() => reviewMutation.mutate(org.id)} className="text-blue-500 hover:text-blue-400">
+                                  <Search className="w-4 h-4 mr-1" /> Review
+                                </Button>
+                              )}
+                              {org.status === 'UNDER_REVIEW' && (
+                                <>
+                                  <Button variant="ghost" size="sm" onClick={() => approveMutation.mutate(org.id)} className="text-emerald-500 hover:text-emerald-400">
+                                    <CheckCircle className="w-4 h-4 mr-1" /> Approve
+                                  </Button>
+                                  <Button variant="ghost" size="sm" onClick={() => rejectMutation.mutate(org.id)} className="text-red-500 hover:text-red-400">
+                                    <Ban className="w-4 h-4 mr-1" /> Reject
+                                  </Button>
+                                </>
+                              )}
                               {org.status === 'ACTIVE' && (
                                 <Button variant="ghost" size="sm" onClick={() => suspendMutation.mutate(org.id)} className="text-amber-500 hover:text-amber-400">
                                   <Ban className="w-4 h-4 mr-1" /> Suspend

@@ -50,6 +50,7 @@ export const register = async (req: Request, res: Response): Promise<void> => {
         data: {
           name: organizationName,
           slug: finalSlug,
+          status: 'REQUESTED',
         },
       });
 
@@ -134,9 +135,19 @@ export const login = async (req: Request, res: Response): Promise<void> => {
     }
 
     // Check if org is active
-    if (user.organization && user.organization.status !== 'ACTIVE') {
-      res.status(403).json({ error: 'Your organization has been suspended.' });
-      return;
+    if (user.organization) {
+      if (user.organization.status === 'REQUESTED' || user.organization.status === 'UNDER_REVIEW') {
+        res.status(403).json({ error: 'Your account is pending admin approval.' });
+        return;
+      }
+      if (user.organization.status === 'REJECTED') {
+        res.status(403).json({ error: 'Your request for an account was rejected.' });
+        return;
+      }
+      if (user.organization.status !== 'ACTIVE') {
+        res.status(403).json({ error: 'Your organization has been suspended.' });
+        return;
+      }
     }
 
     const tokens = generateTokens({
