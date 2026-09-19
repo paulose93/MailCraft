@@ -27,7 +27,21 @@ export const config = {
     password: process.env.GMAIL_APP_PASSWORD || '',
   },
 
-  clientUrl: process.env.CLIENT_URL || 'http://localhost:5173',
+  clientUrl: process.env.CLIENT_URL?.split(',')[0]?.trim() || 'http://localhost:5173',
+
+  // All allowed CORS origins. CLIENT_URL may be a comma-separated list.
+  // Defaults cover local dev plus this host's public IP over http/https.
+  clientUrls: (process.env.CLIENT_URL || '')
+    .split(',')
+    .map((s) => s.trim())
+    .filter(Boolean)
+    .concat([
+      'http://localhost:5173',
+      'http://localhost:3000',
+      'http://13.203.173.124',
+      'https://13.203.173.124',
+    ])
+    .filter((v, i, a) => a.indexOf(v) === i),
 
   admin: {
     email: process.env.ADMIN_EMAIL || 'admin@newsletterai.com',

@@ -25,6 +25,13 @@ export const errorHandler = (
     return;
   }
 
+  // Rejected CORS origins arrive here from the cors middleware.
+  // Answer 403 (not 500) and don't leak the offending origin detail.
+  if (err.message.startsWith('CORS blocked')) {
+    res.status(403).json({ error: 'Origin not allowed.' });
+    return;
+  }
+
   console.error('Unexpected error:', err);
 
   res.status(500).json({

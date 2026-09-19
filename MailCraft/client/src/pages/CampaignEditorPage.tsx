@@ -19,7 +19,7 @@ const CampaignEditorPage: React.FC = () => {
   const [showSendDialog, setShowSendDialog] = useState(false);
   const [editorReady, setEditorReady] = useState(false);
   const [subject, setSubject] = useState('');
-  const autosaveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const autosaveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Chatbot State
   const [chatMessages, setChatMessages] = useState<{ role: 'user' | 'ai', text: string, designJson?: any }[]>([
@@ -207,7 +207,7 @@ const CampaignEditorPage: React.FC = () => {
               minHeight="100%"
               options={{
                 appearance: { theme: 'dark' },
-                features: { stockImages: { enabled: true, safeSearch: true } },
+                features: { stockImages: { enabled: true, safeSearch: true, defaultSearchTerm: 'newsletter' } },
               }}
             />
           </CardContent>

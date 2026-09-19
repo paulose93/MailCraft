@@ -20,12 +20,21 @@ import adminRoutes from './modules/admin/admin.routes';
 
 const app = express();
 
+// Trust nginx reverse proxy (correct IPs + protocol behind proxy)
+// Needed for express-rate-limit and secure cookies/proto detection.
+app.set('trust proxy', 1);
+
 // ─── Security Middleware ──────────────────────────────────
 app.use(helmet());
 app.use(cors({
-  origin: config.clientUrl,
+  origin: (origin, callback) => {
+    // Allow same-origin / non-browser clients (no Origin header)
+    if (!origin) return callback(null, true);
+    if (config.clientUrls.includes(origin)) return callback(null, true);
+    return callback(new Error(`CORS blocked for origin: ${origin}`));
+  },
   credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],
 }));
 
