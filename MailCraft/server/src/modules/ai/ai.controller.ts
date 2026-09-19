@@ -238,13 +238,15 @@ ${brandContext}
 Instructions:
 1. You must construct the email using native drag-and-drop structural blocks.
 2. The allowed block types are:
-   - "text": { "type": "text", "values": { "text": "<p>Your HTML text here</p>" } }
+   - "text": { "type": "text", "values": { "text": "<h2 style=\\"color: ${primaryColor};\\">Heading</h2><p>Your HTML text here</p>" } }
    - "button": { "type": "button", "values": { "text": "Click Here", "url": "https://example.com", "backgroundColor": "${primaryColor}", "textColor": "#FFFFFF" } }
    - "image": { "type": "image", "values": { "src": { "url": "https://placehold.co/600x300/EEE/31343C" } } }
-   - "divider": { "type": "divider", "values": { "lineColor": "#E5E5E5" } }
+   - "divider": { "type": "divider", "values": { "lineColor": "${primaryColor}" } }
 3. Break the email down into these individual blocks so the user can easily drag, drop, and edit them later in the editor. Do not put everything in one text block. Use buttons for calls to action.
 4. If the user asks for a logo or a header image, use an "image" block with this exact URL: "${logoUrl}".
-5. If the user asks to use the secondary color, or if a secondary CTA button is needed, you can change the button's "backgroundColor" to: "${secondaryColor}".
+5. CRITICAL DESIGN RULES: 
+   - You MUST use the Primary Color (${primaryColor}) for headings (via inline CSS), primary buttons, dividers, and key accents.
+   - You MUST use the Secondary Color (${secondaryColor}) for secondary buttons, alternate highlights, or secondary calls to action.
 6. Output your response STRICTLY as a JSON object with this exact shape:
 {
   "message": "Your conversational response here explaining what you designed...",
