@@ -136,7 +136,7 @@ const builtInTemplates = [
 async function main() {
   console.log('🌱 Seeding database...\n');
 
-  // 1. Create Super Admin
+  // 1. Create Super Admin (no org membership needed)
   const adminPassword = await bcrypt.hash(process.env.ADMIN_PASSWORD || 'Admin@123456', 12);
   const admin = await prisma.user.upsert({
     where: { email: process.env.ADMIN_EMAIL || 'admin@newsletterai.com' },
@@ -174,10 +174,20 @@ async function main() {
       firstName: 'John',
       lastName: 'Owner',
       role: 'ORG_OWNER',
-      organizationId: demoOrg1.id,
     },
   });
   console.log(`✅ Org owner created: ${owner.email}`);
+
+  // Create many-to-many membership
+  await prisma.userOrganization.upsert({
+    where: { userId_organizationId: { userId: owner.id, organizationId: demoOrg1.id } },
+    update: {},
+    create: {
+      userId: owner.id,
+      organizationId: demoOrg1.id,
+      role: 'ORG_OWNER',
+    },
+  });
 
   // Create brand kit
   await prisma.brandKit.upsert({
@@ -236,7 +246,7 @@ async function main() {
   });
 
   const owner2Password = await bcrypt.hash('Owner@123456', 12);
-  await prisma.user.upsert({
+  const owner2 = await prisma.user.upsert({
     where: { email: 'owner@startuplabs.com' },
     update: {},
     create: {
@@ -245,7 +255,17 @@ async function main() {
       firstName: 'Jane',
       lastName: 'Doe',
       role: 'ORG_OWNER',
+    },
+  });
+
+  // Create many-to-many membership for org2 owner
+  await prisma.userOrganization.upsert({
+    where: { userId_organizationId: { userId: owner2.id, organizationId: demoOrg2.id } },
+    update: {},
+    create: {
+      userId: owner2.id,
       organizationId: demoOrg2.id,
+      role: 'ORG_OWNER',
     },
   });
 

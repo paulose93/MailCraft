@@ -67,7 +67,7 @@ export const getAllOrganizations = async (req: AuthRequest, res: Response): Prom
         take,
         orderBy: { createdAt: 'desc' },
         include: {
-          _count: { select: { subscribers: true, campaigns: true, users: true } },
+          _count: { select: { subscribers: true, campaigns: true, members: true } },
         },
       }),
       prisma.organization.count({ where }),

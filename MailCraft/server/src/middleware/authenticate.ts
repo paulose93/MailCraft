@@ -31,13 +31,12 @@ export const authenticate = async (
       id: string;
       email: string;
       role: string;
-      organizationId: string | null;
     };
 
     // Verify user still exists
     const user = await prisma.user.findUnique({
       where: { id: decoded.id },
-      select: { id: true, email: true, role: true, organizationId: true },
+      select: { id: true, email: true, role: true },
     });
 
     if (!user) {
@@ -45,10 +44,37 @@ export const authenticate = async (
       return;
     }
 
+    // Resolve organizationId from UserOrganization junction table
+    let organizationId: string | null = null;
+
+    // Check for explicit org header (for multi-org switching in the future)
+    const headerOrgId = req.headers['x-organization-id'] as string | undefined;
+
+    if (headerOrgId) {
+      // Verify membership
+      const membership = await prisma.userOrganization.findUnique({
+        where: { userId_organizationId: { userId: user.id, organizationId: headerOrgId } },
+      });
+      if (membership) {
+        organizationId = headerOrgId;
+      }
+    }
+
+    // Fall back to the user's first organization membership
+    if (!organizationId && user.role !== 'SUPER_ADMIN') {
+      const firstMembership = await prisma.userOrganization.findFirst({
+        where: { userId: user.id },
+        orderBy: { createdAt: 'asc' },
+      });
+      if (firstMembership) {
+        organizationId = firstMembership.organizationId;
+      }
+    }
+
     // Check if org is active (for non-admin users)
-    if (user.organizationId) {
+    if (organizationId) {
       const org = await prisma.organization.findUnique({
-        where: { id: user.organizationId },
+        where: { id: organizationId },
       });
       if (org && org.status !== 'ACTIVE') {
         const path = req.originalUrl || req.url;
@@ -63,7 +89,7 @@ export const authenticate = async (
       id: user.id,
       email: user.email,
       role: user.role,
-      organizationId: user.organizationId,
+      organizationId,
     };
 
     next();

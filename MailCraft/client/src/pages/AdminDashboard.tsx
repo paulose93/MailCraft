@@ -162,7 +162,7 @@ const AdminDashboard: React.FC = () => {
                               org.status === 'SUSPENDED' ? 'bg-amber-500/10 text-amber-500' : 'bg-red-500/10 text-red-500'
                             }`}>{org.status}</span>
                           </td>
-                          <td className="px-4 py-3 text-sm">{org._count?.users || 0}</td>
+                          <td className="px-4 py-3 text-sm">{org._count?.members || 0}</td>
                           <td className="px-4 py-3 text-sm">{org._count?.subscribers || 0}</td>
                           <td className="px-4 py-3 text-sm">{org._count?.campaigns || 0}</td>
                           <td className="px-4 py-3 text-right">

@@ -5,9 +5,9 @@ import prisma from '../../config/database';
 import { config } from '../../config';
 import { AuthRequest } from '../../middleware/authenticate';
 
-const generateTokens = (user: { id: string; email: string; role: string; organizationId: string | null }) => {
+const generateTokens = (user: { id: string; email: string; role: string }) => {
   const accessToken = jwt.sign(
-    { id: user.id, email: user.email, role: user.role, organizationId: user.organizationId },
+    { id: user.id, email: user.email, role: user.role },
     config.jwt.secret,
     { expiresIn: config.jwt.expiresIn } as any
   );
@@ -44,7 +44,7 @@ export const register = async (req: Request, res: Response): Promise<void> => {
     const existingOrg = await prisma.organization.findUnique({ where: { slug } });
     const finalSlug = existingOrg ? `${slug}-${Date.now().toString(36)}` : slug;
 
-    // Create organization and user in a transaction
+    // Create organization, user, and membership in a transaction
     const result = await prisma.$transaction(async (tx) => {
       const organization = await tx.organization.create({
         data: {
@@ -61,7 +61,15 @@ export const register = async (req: Request, res: Response): Promise<void> => {
           firstName,
           lastName,
           role: 'ORG_OWNER',
+        },
+      });
+
+      // Create the many-to-many membership
+      await tx.userOrganization.create({
+        data: {
+          userId: user.id,
           organizationId: organization.id,
+          role: 'ORG_OWNER',
         },
       });
 
@@ -89,7 +97,6 @@ export const register = async (req: Request, res: Response): Promise<void> => {
       id: result.user.id,
       email: result.user.email,
       role: result.user.role,
-      organizationId: result.user.organizationId,
     });
 
     res.status(201).json({
@@ -106,6 +113,18 @@ export const register = async (req: Request, res: Response): Promise<void> => {
           slug: result.organization.slug,
           status: result.organization.status,
         },
+        organizations: [
+          {
+            role: 'ORG_OWNER',
+            organization: {
+              id: result.organization.id,
+              name: result.organization.name,
+              slug: result.organization.slug,
+              logoUrl: result.organization.logoUrl,
+              status: result.organization.status,
+            },
+          },
+        ],
       },
       ...tokens,
     });
@@ -121,7 +140,12 @@ export const login = async (req: Request, res: Response): Promise<void> => {
 
     const user = await prisma.user.findUnique({
       where: { email },
-      include: { organization: true },
+      include: {
+        organizations: {
+          include: { organization: true },
+          orderBy: { createdAt: 'asc' },
+        },
+      },
     });
 
     if (!user) {
@@ -135,17 +159,27 @@ export const login = async (req: Request, res: Response): Promise<void> => {
       return;
     }
 
+    // Get the user's first organization (primary)
+    const primaryMembership = user.organizations[0];
+    const org = primaryMembership?.organization;
+
+    // Users (except SUPER_ADMIN) must belong to at least one organization to log in
+    if (user.role !== 'SUPER_ADMIN' && (!user.organizations || user.organizations.length === 0)) {
+      res.status(403).json({ error: 'Your account is pending admin approval.' });
+      return;
+    }
+
     // Check if org is active
-    if (user.organization) {
-      if (user.organization.status === 'REQUESTED' || user.organization.status === 'UNDER_REVIEW') {
+    if (org) {
+      if (org.status === 'REQUESTED' || org.status === 'UNDER_REVIEW') {
         res.status(403).json({ error: 'Your account is pending admin approval.' });
         return;
       }
-      if (user.organization.status === 'REJECTED') {
+      if (org.status === 'REJECTED') {
         res.status(403).json({ error: 'Your request for an account was rejected.' });
         return;
       }
-      if (user.organization.status !== 'ACTIVE') {
+      if (org.status !== 'ACTIVE') {
         res.status(403).json({ error: 'Your organization has been suspended.' });
         return;
       }
@@ -155,7 +189,6 @@ export const login = async (req: Request, res: Response): Promise<void> => {
       id: user.id,
       email: user.email,
       role: user.role,
-      organizationId: user.organizationId,
     });
 
     res.json({
@@ -166,14 +199,24 @@ export const login = async (req: Request, res: Response): Promise<void> => {
         firstName: user.firstName,
         lastName: user.lastName,
         role: user.role,
-        organization: user.organization
+        organization: org
           ? {
-              id: user.organization.id,
-              name: user.organization.name,
-              slug: user.organization.slug,
-              status: user.organization.status,
+              id: org.id,
+              name: org.name,
+              slug: org.slug,
+              status: org.status,
             }
           : null,
+        organizations: user.organizations.map((m) => ({
+          role: m.role,
+          organization: {
+            id: m.organization.id,
+            name: m.organization.name,
+            slug: m.organization.slug,
+            logoUrl: m.organization.logoUrl,
+            status: m.organization.status,
+          },
+        })),
       },
       ...tokens,
     });
@@ -187,13 +230,23 @@ export const getMe = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const user = await prisma.user.findUnique({
       where: { id: req.user!.id },
-      include: { organization: true },
+      include: {
+        organizations: {
+          include: { organization: true },
+          orderBy: { createdAt: 'asc' },
+        },
+      },
     });
 
     if (!user) {
       res.status(404).json({ error: 'User not found.' });
       return;
     }
+
+    // Use the org resolved by the middleware, or fall back to first membership
+    const activeOrgId = req.user!.organizationId;
+    const membership = user.organizations.find(m => m.organizationId === activeOrgId) || user.organizations[0];
+    const org = membership?.organization;
 
     res.json({
       user: {
@@ -202,15 +255,25 @@ export const getMe = async (req: AuthRequest, res: Response): Promise<void> => {
         firstName: user.firstName,
         lastName: user.lastName,
         role: user.role,
-        organization: user.organization
+        organization: org
           ? {
-              id: user.organization.id,
-              name: user.organization.name,
-              slug: user.organization.slug,
-              logoUrl: user.organization.logoUrl,
-              status: user.organization.status,
+              id: org.id,
+              name: org.name,
+              slug: org.slug,
+              logoUrl: org.logoUrl,
+              status: org.status,
             }
           : null,
+        organizations: user.organizations.map((m) => ({
+          role: m.role,
+          organization: {
+            id: m.organization.id,
+            name: m.organization.name,
+            slug: m.organization.slug,
+            logoUrl: m.organization.logoUrl,
+            status: m.organization.status,
+          },
+        })),
       },
     });
   } catch (error) {
@@ -227,7 +290,7 @@ export const refreshToken = async (req: Request, res: Response): Promise<void> =
 
     const user = await prisma.user.findUnique({
       where: { id: decoded.id },
-      select: { id: true, email: true, role: true, organizationId: true },
+      select: { id: true, email: true, role: true },
     });
 
     if (!user) {

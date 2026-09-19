@@ -9,12 +9,16 @@ const api = axios.create({
   },
 });
 
-// Request interceptor - add auth token
+// Request interceptor - add auth token and org id
 api.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem('accessToken');
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
+    }
+    const orgId = localStorage.getItem('activeOrganizationId');
+    if (orgId) {
+      config.headers['X-Organization-Id'] = orgId;
     }
     return config;
   },

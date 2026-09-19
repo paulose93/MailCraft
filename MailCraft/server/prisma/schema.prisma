@@ -39,36 +39,48 @@ enum CampaignStatus {
 // ─── Models ──────────────────────────────────────────────
 
 model User {
-  id             String        @id @default(uuid())
-  email          String        @unique
+  id             String              @id @default(uuid())
+  email          String              @unique
   password       String
   firstName      String
   lastName       String
-  role           Role          @default(ORG_OWNER)
-  organizationId String?
-  organization   Organization? @relation(fields: [organizationId], references: [id], onDelete: SetNull)
-  createdAt      DateTime      @default(now())
-  updatedAt      DateTime      @updatedAt
+  role           Role                @default(ORG_OWNER)
+  organizations  UserOrganization[]
+  createdAt      DateTime            @default(now())
+  updatedAt      DateTime            @updatedAt
 
-  @@index([organizationId])
   @@index([email])
 }
 
+model UserOrganization {
+  id             String       @id @default(uuid())
+  userId         String
+  organizationId String
+  role           Role         @default(ORG_MEMBER)
+  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  createdAt      DateTime     @default(now())
+
+  @@unique([userId, organizationId])
+  @@index([userId])
+  @@index([organizationId])
+}
+
 model Organization {
-  id          String       @id @default(uuid())
+  id          String             @id @default(uuid())
   name        String
-  slug        String       @unique
+  slug        String             @unique
   description String?
   logoUrl     String?
-  status      OrgStatus    @default(ACTIVE)
-  users       User[]
+  status      OrgStatus          @default(ACTIVE)
+  members     UserOrganization[]
   subscribers Subscriber[]
   campaigns   Campaign[]
   templates   Template[]
   brandKit    BrandKit?
   settings    OrgSettings?
-  createdAt   DateTime     @default(now())
-  updatedAt   DateTime     @updatedAt
+  createdAt   DateTime           @default(now())
+  updatedAt   DateTime           @updatedAt
 
   @@index([slug])
 }

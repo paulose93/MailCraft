@@ -3,6 +3,7 @@ import { Link, useLocation, Outlet } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
+import { CreateOrganizationDialog } from '@/components/CreateOrganizationDialog';
 import {
   LayoutDashboard,
   Users,
@@ -40,7 +41,7 @@ const adminNavItems = [
 ];
 
 const DashboardLayout: React.FC = () => {
-  const { user, logout } = useAuth();
+  const { user, logout, switchOrganization } = useAuth();
   const location = useLocation();
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -128,18 +129,38 @@ const DashboardLayout: React.FC = () => {
         {/* User section */}
         <div className="border-t border-border p-3">
           {!collapsed && (
-            <div className="flex items-center gap-3 px-3 py-2 mb-2">
-              <div className="w-8 h-8 rounded-full bg-gradient-to-br from-primary to-accent flex items-center justify-center shrink-0">
-                <span className="text-xs font-bold text-white">
-                  {user?.firstName?.[0]}{user?.lastName?.[0]}
-                </span>
+            <div className="flex flex-col gap-3 px-3 py-2 mb-2">
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 rounded-full bg-gradient-to-br from-primary to-accent flex items-center justify-center shrink-0">
+                  <span className="text-xs font-bold text-white">
+                    {user?.firstName?.[0]}{user?.lastName?.[0]}
+                  </span>
+                </div>
+                <div className="overflow-hidden">
+                  <p className="text-sm font-medium truncate">{user?.firstName} {user?.lastName}</p>
+                  <p className="text-xs text-muted-foreground truncate">
+                    {user?.role === 'SUPER_ADMIN' ? 'Platform Admin' : user?.organization?.name || 'No Organization'}
+                  </p>
+                </div>
               </div>
-              <div className="overflow-hidden">
-                <p className="text-sm font-medium truncate">{user?.firstName} {user?.lastName}</p>
-                <p className="text-xs text-muted-foreground truncate">
-                  {user?.organization?.name || 'Platform Admin'}
-                </p>
-              </div>
+              
+              {user?.organizations && user.organizations.length > 0 && (
+                <div className="mt-1">
+                  <select
+                    className="w-full bg-secondary border border-border text-sm rounded-md px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-primary"
+                    value={user.organization?.id || ''}
+                    onChange={(e) => switchOrganization(e.target.value)}
+                  >
+                    {user.organizations.map((orgMem) => (
+                      <option key={orgMem.organization.id} value={orgMem.organization.id}>
+                        {orgMem.organization.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
+
+              <CreateOrganizationDialog className="w-full mt-1" />
             </div>
           )}
           <Button

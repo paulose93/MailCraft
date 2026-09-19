@@ -1,19 +1,25 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import api from '../lib/api';
 
-interface User {
+export interface OrganizationData {
+  id: string;
+  name: string;
+  slug: string;
+  logoUrl?: string;
+  status: 'REQUESTED' | 'UNDER_REVIEW' | 'ACTIVE' | 'REJECTED' | 'SUSPENDED' | 'DELETED';
+}
+
+export interface User {
   id: string;
   email: string;
   firstName: string;
   lastName: string;
   role: 'SUPER_ADMIN' | 'ORG_OWNER' | 'ORG_MEMBER';
-  organization: {
-    id: string;
-    name: string;
-    slug: string;
-    logoUrl?: string;
-    status: 'REQUESTED' | 'UNDER_REVIEW' | 'ACTIVE' | 'REJECTED' | 'SUSPENDED' | 'DELETED';
-  } | null;
+  organization: OrganizationData | null;
+  organizations: {
+    role: string;
+    organization: OrganizationData;
+  }[];
 }
 
 interface AuthContextType {
@@ -24,6 +30,7 @@ interface AuthContextType {
   register: (data: RegisterData) => Promise<void>;
   logout: () => void;
   fetchUser: () => Promise<void>;
+  switchOrganization: (orgId: string) => Promise<void>;
 }
 
 interface RegisterData {
@@ -58,6 +65,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     } catch {
       localStorage.removeItem('accessToken');
       localStorage.removeItem('refreshToken');
+      localStorage.removeItem('activeOrganizationId');
       setUser(null);
     } finally {
       setIsLoading(false);
@@ -72,6 +80,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const { data } = await api.post('/auth/login', { email, password });
     localStorage.setItem('accessToken', data.accessToken);
     localStorage.setItem('refreshToken', data.refreshToken);
+    if (data.user.organization) {
+      localStorage.setItem('activeOrganizationId', data.user.organization.id);
+    }
     setUser(data.user);
   };
 
@@ -79,13 +90,22 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const { data } = await api.post('/auth/register', registerData);
     localStorage.setItem('accessToken', data.accessToken);
     localStorage.setItem('refreshToken', data.refreshToken);
+    if (data.user.organization) {
+      localStorage.setItem('activeOrganizationId', data.user.organization.id);
+    }
     setUser(data.user);
   };
 
   const logout = () => {
     localStorage.removeItem('accessToken');
     localStorage.removeItem('refreshToken');
+    localStorage.removeItem('activeOrganizationId');
     setUser(null);
+  };
+
+  const switchOrganization = async (orgId: string) => {
+    localStorage.setItem('activeOrganizationId', orgId);
+    await fetchUser();
   };
 
   return (
@@ -98,6 +118,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         register,
         logout,
         fetchUser,
+        switchOrganization,
       }}
     >
       {children}
