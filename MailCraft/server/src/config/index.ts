@@ -40,6 +40,8 @@ export const config = {
       'http://localhost:3000',
       'http://13.203.173.124',
       'https://13.203.173.124',
+      'http://mailcraft.qd.je',
+      'https://mailcraft.qd.je',
     ])
     .filter((v, i, a) => a.indexOf(v) === i),
 

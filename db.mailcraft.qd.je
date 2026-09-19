@@ -1,0 +1,29 @@
+$ORIGIN mailcraft.qd.je.
+$TTL 3600
+
+; ─── mailcraft.qd.je → 13.203.173.124 ─────────────────────────
+; Import: add as a primary/master zone named "mailcraft.qd.je"
+; Verify: named-checkzone mailcraft.qd.je db.mailcraft.qd.je
+
+@   IN  SOA ns1.mailcraft.qd.je. admin.mailcraft.qd.je. (
+        2026091901  ; serial (YYYYMMDDNN — bump on every edit)
+        7200        ; refresh (2h)
+        3600        ; retry (1h)
+        1209600     ; expire (2 weeks)
+        300         ; minimum / negative-cache TTL (5m)
+)
+
+; ─── Nameservers ──────────────────────────────────────────────
+; REPLACE these with your DNS provider's actual nameservers
+; (e.g. registrar or hosting defaults). Only keep self-hosted
+; ns1/ns2 below if this machine is itself authoritative DNS.
+@   IN  NS  ns1.mailcraft.qd.je.
+@   IN  NS  ns2.mailcraft.qd.je.
+
+; ─── Server (this EC2 host) ───────────────────────────────────
+@       600 IN  A   13.203.173.124
+www     600 IN  A   13.203.173.124
+
+; ─── Certificate Authority Authorization ──────────────────────
+; Only Let's Encrypt may issue for this domain (matches certs step)
+@   IN  CAA 0 issue "letsencrypt.org"

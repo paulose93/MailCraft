@@ -28,7 +28,9 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, roles }) => {
   }
 
   if (roles && user && !roles.includes(user.role)) {
-    return <Navigate to="/dashboard" replace />;
+    // Role-aware fallback: admins go to the admin dashboard, not /dashboard
+    // (which would loop, since /dashboard itself requires an org role).
+    return <Navigate to={user.role === 'SUPER_ADMIN' ? '/admin/dashboard' : '/dashboard'} replace />;
   }
 
   // Handle pending approval states
@@ -39,7 +41,7 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, roles }) => {
   }
 
   if (!isPending && location.pathname === '/pending-approval') {
-    return <Navigate to="/dashboard" replace />;
+    return <Navigate to={user?.role === 'SUPER_ADMIN' ? '/admin/dashboard' : '/dashboard'} replace />;
   }
 
   return <>{children}</>;

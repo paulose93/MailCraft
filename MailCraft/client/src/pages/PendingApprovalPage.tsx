@@ -8,11 +8,11 @@ const PendingApprovalPage: React.FC = () => {
   const { user, fetchUser } = useAuth();
   const navigate = useNavigate();
 
-  // Poll for user status every 5 seconds
+  // Poll for user status every 15 seconds (gentle on rate limits)
   useEffect(() => {
     const interval = setInterval(() => {
       fetchUser();
-    }, 5000);
+    }, 15000);
 
     return () => clearInterval(interval);
   }, [fetchUser]);

@@ -23,7 +23,7 @@ const LoginPage: React.FC = () => {
     setLoading(true);
     try {
       await login(email, password);
-      navigate('/dashboard');
+      navigate('/'); // RoleBasedRedirect routes by role (admin -> /admin/dashboard)
     } catch (err: any) {
       setError(err.response?.data?.error || 'Login failed');
     } finally {
