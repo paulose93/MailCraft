@@ -51,8 +51,11 @@ export const authenticate = async (
         where: { id: user.organizationId },
       });
       if (org && org.status !== 'ACTIVE') {
-        res.status(403).json({ error: 'Organization is suspended.' });
-        return;
+        const path = req.originalUrl || req.url;
+        if (!path.includes('/auth/me') && !path.includes('/auth/refresh')) {
+          res.status(403).json({ error: 'Organization is not active.' });
+          return;
+        }
       }
     }
 

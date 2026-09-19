@@ -12,6 +12,7 @@ interface User {
     name: string;
     slug: string;
     logoUrl?: string;
+    status: 'REQUESTED' | 'UNDER_REVIEW' | 'ACTIVE' | 'REJECTED' | 'SUSPENDED' | 'DELETED';
   } | null;
 }
 
@@ -22,6 +23,7 @@ interface AuthContextType {
   login: (email: string, password: string) => Promise<void>;
   register: (data: RegisterData) => Promise<void>;
   logout: () => void;
+  fetchUser: () => Promise<void>;
 }
 
 interface RegisterData {
@@ -95,6 +97,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         login,
         register,
         logout,
+        fetchUser,
       }}
     >
       {children}

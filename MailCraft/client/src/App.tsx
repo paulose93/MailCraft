@@ -18,6 +18,7 @@ import AnalyticsPage from './pages/AnalyticsPage';
 import BrandKitPage from './pages/BrandKitPage';
 import SettingsPage from './pages/SettingsPage';
 import AdminDashboard from './pages/AdminDashboard';
+import PendingApprovalPage from './pages/PendingApprovalPage';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -45,6 +46,7 @@ function App() {
             {/* Public routes */}
             <Route path="/login" element={<LoginPage />} />
             <Route path="/register" element={<RegisterPage />} />
+            <Route path="/pending-approval" element={<ProtectedRoute><PendingApprovalPage /></ProtectedRoute>} />
 
             {/* Protected routes with layout */}
             <Route

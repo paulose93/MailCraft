@@ -104,6 +104,7 @@ export const register = async (req: Request, res: Response): Promise<void> => {
           id: result.organization.id,
           name: result.organization.name,
           slug: result.organization.slug,
+          status: result.organization.status,
         },
       },
       ...tokens,
@@ -170,6 +171,7 @@ export const login = async (req: Request, res: Response): Promise<void> => {
               id: user.organization.id,
               name: user.organization.name,
               slug: user.organization.slug,
+              status: user.organization.status,
             }
           : null,
       },
@@ -206,6 +208,7 @@ export const getMe = async (req: AuthRequest, res: Response): Promise<void> => {
               name: user.organization.name,
               slug: user.organization.slug,
               logoUrl: user.organization.logoUrl,
+              status: user.organization.status,
             }
           : null,
       },

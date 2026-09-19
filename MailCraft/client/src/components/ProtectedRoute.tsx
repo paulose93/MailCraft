@@ -31,6 +31,17 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, roles }) => {
     return <Navigate to="/dashboard" replace />;
   }
 
+  // Handle pending approval states
+  const isPending = user?.organization && ['REQUESTED', 'UNDER_REVIEW'].includes(user.organization.status);
+  
+  if (isPending && location.pathname !== '/pending-approval') {
+    return <Navigate to="/pending-approval" replace />;
+  }
+
+  if (!isPending && location.pathname === '/pending-approval') {
+    return <Navigate to="/dashboard" replace />;
+  }
+
   return <>{children}</>;
 };
 
