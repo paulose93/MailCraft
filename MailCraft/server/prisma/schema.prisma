@@ -1,0 +1,169 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─── Enums ───────────────────────────────────────────────
+
+enum Role {
+  SUPER_ADMIN
+  ORG_OWNER
+  ORG_MEMBER
+}
+
+enum OrgStatus {
+  ACTIVE
+  SUSPENDED
+  DELETED
+}
+
+enum SubStatus {
+  ACTIVE
+  UNSUBSCRIBED
+}
+
+enum CampaignStatus {
+  DRAFT
+  SENDING
+  SENT
+  FAILED
+}
+
+// ─── Models ──────────────────────────────────────────────
+
+model User {
+  id             String        @id @default(uuid())
+  email          String        @unique
+  password       String
+  firstName      String
+  lastName       String
+  role           Role          @default(ORG_OWNER)
+  organizationId String?
+  organization   Organization? @relation(fields: [organizationId], references: [id], onDelete: SetNull)
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+
+  @@index([organizationId])
+  @@index([email])
+}
+
+model Organization {
+  id          String       @id @default(uuid())
+  name        String
+  slug        String       @unique
+  description String?
+  logoUrl     String?
+  status      OrgStatus    @default(ACTIVE)
+  users       User[]
+  subscribers Subscriber[]
+  campaigns   Campaign[]
+  templates   Template[]
+  brandKit    BrandKit?
+  settings    OrgSettings?
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  @@index([slug])
+}
+
+model Subscriber {
+  id             String   @id @default(uuid())
+  email          String
+  firstName      String?
+  lastName       String?
+  status         SubStatus @default(ACTIVE)
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@unique([email, organizationId])
+  @@index([organizationId])
+  @@index([status])
+}
+
+model Campaign {
+  id             String         @id @default(uuid())
+  name           String
+  subject        String
+  previewText    String?
+  content        String         @db.Text
+  designJson     Json?
+  status         CampaignStatus @default(DRAFT)
+  sentAt         DateTime?
+  sentCount      Int            @default(0)
+  failedCount    Int            @default(0)
+  totalRecipients Int           @default(0)
+  organizationId String
+  organization   Organization   @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  templateId     String?
+  analytics      CampaignAnalytics[]
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+
+  @@index([organizationId])
+  @@index([status])
+}
+
+model Template {
+  id             String        @id @default(uuid())
+  name           String
+  description    String?
+  content        String        @db.Text
+  designJson     Json?
+  category       String        @default("general")
+  isBuiltIn      Boolean       @default(false)
+  thumbnailUrl   String?
+  organizationId String?
+  organization   Organization? @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+
+  @@index([organizationId])
+  @@index([category])
+  @@index([isBuiltIn])
+}
+
+model BrandKit {
+  id               String       @id @default(uuid())
+  companyName      String
+  logoUrl          String?
+  primaryColor     String       @default("#6366f1")
+  secondaryColor   String       @default("#8b5cf6")
+  brandDescription String?      @db.Text
+  writingTone      String       @default("professional")
+  audience         String?
+  mission          String?      @db.Text
+  organizationId   String       @unique
+  organization     Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  createdAt        DateTime     @default(now())
+  updatedAt        DateTime     @updatedAt
+}
+
+model CampaignAnalytics {
+  id          String   @id @default(uuid())
+  campaignId  String
+  campaign    Campaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  email       String
+  status      String   @default("sent")
+  sentAt      DateTime @default(now())
+
+  @@index([campaignId])
+}
+
+model OrgSettings {
+  id               String       @id @default(uuid())
+  senderName       String?
+  senderEmail      String?
+  replyToEmail     String?
+  emailFooter      String?
+  timezone         String       @default("UTC")
+  organizationId   String       @unique
+  organization     Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  createdAt        DateTime     @default(now())
+  updatedAt        DateTime     @updatedAt
+}
